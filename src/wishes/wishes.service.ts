@@ -61,4 +61,18 @@ export class WishesService {
     }
     return this.wishRepository.delete(id);
   }
+
+  async findWishesByUserId(id: number) {
+    const wishes = await this.wishRepository.find({
+      where: {
+        owner: {
+          id: id,
+        },
+      },
+    });
+    if (!wishes) {
+      throw new NotFoundException('Желаемые подарки не найдены');
+    }
+    return wishes;
+  }
 }

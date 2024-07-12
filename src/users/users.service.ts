@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   InternalServerErrorException,
@@ -10,11 +11,14 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
+import { WishesService } from 'src/wishes/wishes.service';
+import { FindUserDto } from './dto/find-user.dto';
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
+    private wishesService: WishesService,
   ) {}
 
   // add new user
@@ -103,5 +107,34 @@ export class UsersService {
 
   remove(id: number) {
     return this.userRepository.delete(id);
+  }
+
+  async findMyWishes(id: number) {
+    const user = await this.findOne(id);
+    if (!user) {
+      throw new NotFoundException('Пользователь не найден');
+    }
+    return this.wishesService.findWishesByUserId(id);
+  }
+
+  async findSomeOneWishes(username: string) {
+    const user = await this.findOneByUsername(username);
+    if (!user) {
+      throw new NotFoundException('Пользователь не найден');
+    }
+    return this.wishesService.findWishesByUserId(user.id);
+  }
+
+  async findByUsernameOREmail(findUserDto: FindUserDto) {
+    const { email, username } = findUserDto;
+    if (!email && !username) {
+      throw new BadRequestException('Ошибка в запросе поиска пользователя');
+    }
+    if (email) {
+      this.userRepository.findOneBy({ email });
+    }
+    if (!email) {
+      this.findOneByUsername(username);
+    }
   }
 }
