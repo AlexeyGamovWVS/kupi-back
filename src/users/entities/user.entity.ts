@@ -30,7 +30,7 @@ export class User {
 
   // about
   @Column({ default: 'Пока ничего не рассказал о себе' })
-  @Length(2, 200)
+  @Length(0, 200)
   about: string;
 
   // avatar
