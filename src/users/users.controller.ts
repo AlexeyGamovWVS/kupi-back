@@ -46,8 +46,8 @@ export class UsersController {
   }
 
   @Post('find')
-  findByUsernameOREmail(@Body() findUserDto: FindUserDto) {
-    return this.usersService.findByUsernameOREmail(findUserDto);
+  findMany(@Body() findUserDto: FindUserDto) {
+    return this.usersService.findMany(findUserDto);
   }
 
   // deafult

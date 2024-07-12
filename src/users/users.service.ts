@@ -125,16 +125,21 @@ export class UsersService {
     return this.wishesService.findWishesByUserId(user.id);
   }
 
-  async findByUsernameOREmail(findUserDto: FindUserDto) {
+  async findMany(findUserDto: FindUserDto) {
     const { email, username } = findUserDto;
     if (!email && !username) {
       throw new BadRequestException('Ошибка в запросе поиска пользователя');
     }
+    if (email && username) {
+      return this.userRepository.find({
+        where: { username: username, email: email },
+      });
+    }
     if (email) {
-      this.userRepository.findOneBy({ email });
+      return this.userRepository.findBy({ email });
     }
     if (!email) {
-      this.findOneByUsername(username);
+      return this.userRepository.findBy({ username });
     }
   }
 }
