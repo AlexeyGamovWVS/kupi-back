@@ -68,12 +68,6 @@ export class UsersController {
     return this.usersService.findMany(findUserDto);
   }
   /*
-
-
-
-
-
-
   // deafult
 
   @Get()

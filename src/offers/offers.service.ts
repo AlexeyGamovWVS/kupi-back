@@ -5,76 +5,103 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { CreateOfferDto } from './dto/create-offer.dto';
-import { UpdateOfferDto } from './dto/update-offer.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Offer } from './entities/offer.entity';
 import { Repository } from 'typeorm';
-import { User } from 'src/users/entities/user.entity';
-import { Wish } from 'src/wishes/entities/wish.entity';
+import { WishesService } from 'src/wishes/wishes.service';
+import { UsersService } from 'src/users/users.service';
 
 @Injectable()
 export class OffersService {
   constructor(
     @InjectRepository(Offer)
     private offerRepository: Repository<Offer>,
-    @InjectRepository(Wish)
-    private wishRepository: Repository<Wish>,
+    private wishesService: WishesService,
+    private usersService: UsersService,
   ) {}
 
-  async create(user: User, createOfferDto: CreateOfferDto) {
-    const wish = await this.wishRepository.findOne({
-      where: { id: createOfferDto.itemId },
-    });
+  async create(userId: number, createOfferDto: CreateOfferDto) {
+    const wish = await this.wishesService.findOne(createOfferDto.itemId);
 
     if (!wish) {
       throw new NotFoundException('Не найдено желание');
     }
-    if (wish.owner.id === user.id) {
+    // if (wish.owner.id === userId) {
+    //   throw new BadRequestException(
+    //     'Пользователю нельзя вносить деньги на собственные подарки, а также удалять или редактировать заявки',
+    //   );
+    // }
+    if (+createOfferDto.amount <= 0) {
       throw new BadRequestException(
-        'Пользователю нельзя вносить деньги на собственные подарки, а также удалять или редактировать заявки',
+        'Сумма не может быть равна нулю или меньше 0.',
       );
     }
+    const raised =
+      wish.offers
+        .map((offer) => offer.raised)
+        .reduce((acc, curr) => +acc + +curr, 0) + +createOfferDto.amount;
 
-    wish.raised = wish.offers
-      .map((offer) => offer.raised)
-      .reduce((acc, count) => acc + count, 0);
-
-    if (wish.raised > wish.price) {
+    if (raised > wish.price) {
       throw new ConflictException(
         'Сумма собранных средств не может превышать стоимость подарка.',
       );
     }
 
-    this.wishRepository.update({ id: wish.id }, wish);
+    wish.raised = raised;
+
+    await this.wishesService.save(wish);
+    const user = await this.usersService.findById(userId);
+
     const offer = this.offerRepository.create({
       ...createOfferDto,
+      raised: createOfferDto.amount,
       user: user,
       item: wish,
     });
+
     return this.offerRepository.save(offer);
   }
 
   findAll() {
-    return this.offerRepository.find();
+    return this.offerRepository.find({
+      relations: {
+        item: { offers: true, owner: true },
+        user: {
+          offers: { item: true },
+          wishes: { offers: true, owner: true },
+          wishlist: true,
+        },
+      },
+    });
   }
 
   findOne(id: number) {
-    return this.offerRepository.findOneBy({ id });
+    return this.offerRepository.findOne({
+      where: { id },
+      relations: {
+        item: { offers: true, owner: true },
+        user: {
+          offers: { item: true },
+          wishes: { offers: true, owner: true },
+          wishlist: true,
+        },
+      },
+    });
   }
 
-  async update(id: number, updateOfferDto: UpdateOfferDto) {
-    const offer = await this.findOne(id);
-    if (!offer) {
-      throw new NotFoundException('Предложение не найдено');
-    }
-    return this.offerRepository.update({ id }, updateOfferDto);
-  }
+  // async update(id: number, updateOfferDto: UpdateOfferDto) {
+  //   const offer = await this.findOne(id);
+  //   if (!offer) {
+  //     throw new NotFoundException('Предложение не найдено');
+  //   }
+  //   return this.offerRepository.update({ id }, updateOfferDto);
+  // }
 
-  async remove(id: number) {
-    const offer = await this.findOne(id);
-    if (!offer) {
-      throw new NotFoundException('Предложение не найдено');
-    }
-    return this.offerRepository.delete(id);
-  }
+  // async remove(id: number) {
+  //   const offer = await this.findOne(id);
+  //   if (!offer) {
+  //     throw new NotFoundException('Предложение не найдено');
+  //   }
+  //   return this.offerRepository.delete(id);
+  // }
 }

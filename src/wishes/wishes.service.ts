@@ -19,7 +19,9 @@ export class WishesService {
     private readonly wishRepository: Repository<Wish>,
     private readonly userService: UsersService,
   ) {}
-
+  async save(wish: Wish) {
+    return await this.wishRepository.save(wish);
+  }
   async create(userId: number, createWishDto: CreateWishDto) {
     const owner = await this.userService.findById(userId);
     const wish = this.wishRepository.create({ ...createWishDto, owner: owner });
@@ -28,7 +30,7 @@ export class WishesService {
 
   findOne(id: number) {
     return this.wishRepository.findOne({
-      where: { id: id },
+      where: { id },
       relations: { owner: true, offers: true },
     });
   }

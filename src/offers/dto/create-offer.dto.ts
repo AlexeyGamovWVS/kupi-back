@@ -1,9 +1,8 @@
-import { IsDecimal, Min } from 'class-validator';
+import { IsDecimal } from 'class-validator';
 
 export class CreateOfferDto {
   @IsDecimal({ decimal_digits: '2' })
-  @Min(0)
-  raised: number;
+  amount: number;
 
   hidden?: boolean;
   itemId: number;
