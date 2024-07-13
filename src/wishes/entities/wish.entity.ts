@@ -65,7 +65,7 @@ export class Wish {
     default: '0.00',
   })
   @IsDecimal({ decimal_digits: '2' })
-  @Min(0)
+  @Min(1)
   raised: number;
 
   // owners of this wish
@@ -90,6 +90,5 @@ export class Wish {
     default: 0,
   })
   @IsInt()
-  @Min(0)
   copied: number;
 }

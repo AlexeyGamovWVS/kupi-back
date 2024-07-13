@@ -1,4 +1,12 @@
-import { IsEmail, IsNotEmpty, IsString, Length } from 'class-validator';
+import { Exclude } from 'class-transformer';
+import {
+  IsEmail,
+  IsNotEmpty,
+  IsString,
+  IsUrl,
+  Length,
+  MinLength,
+} from 'class-validator';
 import { Offer } from 'src/offers/entities/offer.entity';
 import { Wish } from 'src/wishes/entities/wish.entity';
 import { Wishlist } from 'src/wishlists/entities/wishlist.entity';
@@ -24,7 +32,7 @@ export class User {
   // username
   @Column()
   @IsString()
-  @Length(2, 30)
+  @Length(1, 64)
   @IsNotEmpty()
   username: string;
 
@@ -35,6 +43,7 @@ export class User {
 
   // avatar
   @Column({ default: 'https://i.pravatar.cc/300' })
+  @IsUrl()
   avatar: string;
 
   // email
@@ -44,7 +53,9 @@ export class User {
   email: string;
 
   // password
-  @Column()
+  @Exclude()
+  @Column({ select: false })
+  @MinLength(6)
   @IsString()
   @IsNotEmpty()
   password: string;

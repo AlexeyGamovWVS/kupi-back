@@ -1,9 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { UsersService } from 'src/users/users.service';
 import { JwtService } from '@nestjs/jwt';
-import * as bcrypt from 'bcrypt';
 import { User } from 'src/users/entities/user.entity';
-import { CreateUserDto } from 'src/users/dto/create-user.dto';
+import { hashCompare } from 'src/common/helpers/hash';
 
 @Injectable()
 export class AuthService {
@@ -12,9 +11,12 @@ export class AuthService {
     private userService: UsersService,
   ) {}
 
-  async validateUser(username: string, pass: string) {
-    const user = await this.userService.findOneByUsername(username);
-    if (user && (await bcrypt.compare(pass, user.password))) {
+  async validateUser(username: string, password: string) {
+    const user = await this.userService.findOne({
+      select: { username: true, password: true, id: true },
+      where: { username },
+    });
+    if (user && (await hashCompare(password, user.password))) {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { password, ...result } = user;
       return result;
@@ -22,17 +24,10 @@ export class AuthService {
     return null;
   }
 
-  signin(user: User) {
+  async signin(user: User) {
+    const { username, id: sub } = user;
     return {
-      access_token: this.jwtService.sign(
-        { username: user.username, sub: user.id },
-        { expiresIn: '7d' },
-      ),
+      access_token: await this.jwtService.signAsync({ username, sub }),
     };
-  }
-
-  async signup(createUserDto: CreateUserDto) {
-    const user = await this.userService.create(createUserDto);
-    return user;
   }
 }

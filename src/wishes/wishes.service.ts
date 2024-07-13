@@ -8,18 +8,21 @@ import { CreateWishDto } from './dto/create-wish.dto';
 import { UpdateWishDto } from './dto/update-wish.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Wish } from './entities/wish.entity';
-import { User } from 'src/users/entities/user.entity';
+// import { User } from 'src/users/entities/user.entity';
 import { Repository } from 'typeorm';
+import { UsersService } from 'src/users/users.service';
 
 @Injectable()
 export class WishesService {
   constructor(
     @InjectRepository(Wish)
-    private wishRepository: Repository<Wish>,
+    private readonly wishRepository: Repository<Wish>,
+    private readonly userService: UsersService,
   ) {}
 
-  async create(user: User, createWishDto: CreateWishDto) {
-    const wish = this.wishRepository.create({ ...createWishDto, owner: user });
+  async create(userId: number, createWishDto: CreateWishDto) {
+    const owner = await this.userService.findById(userId);
+    const wish = this.wishRepository.create({ ...createWishDto, owner: owner });
     return this.wishRepository.save(wish);
   }
 
@@ -62,13 +65,19 @@ export class WishesService {
     return this.wishRepository.delete(id);
   }
 
-  async findWishesByUserId(id: number) {
+  async findWishesByUserId(ownerId: number) {
     const wishes = await this.wishRepository.find({
-      where: {
-        owner: {
-          id: id,
-        },
-      },
+      where: { owner: { id: ownerId } },
+    });
+    if (!wishes) {
+      throw new NotFoundException('Желаемые подарки не найдены');
+    }
+    return wishes;
+  }
+
+  async findWishesByUserName(username: string) {
+    const wishes = await this.wishRepository.find({
+      where: { owner: { username: username } },
     });
     if (!wishes) {
       throw new NotFoundException('Желаемые подарки не найдены');
