@@ -26,12 +26,11 @@ export class WishesService {
     return this.wishRepository.save(wish);
   }
 
-  findAll() {
-    return this.wishRepository.find();
-  }
-
   findOne(id: number) {
-    return this.wishRepository.findOneBy({ id });
+    return this.wishRepository.findOne({
+      where: { id: id },
+      relations: { owner: true, offers: true },
+    });
   }
 
   async update(id: number, userId: number, updateWishDto: UpdateWishDto) {
@@ -68,6 +67,7 @@ export class WishesService {
   async findWishesByUserId(ownerId: number) {
     const wishes = await this.wishRepository.find({
       where: { owner: { id: ownerId } },
+      relations: { owner: true, offers: true },
     });
     if (!wishes) {
       throw new NotFoundException('Желаемые подарки не найдены');
@@ -78,10 +78,45 @@ export class WishesService {
   async findWishesByUserName(username: string) {
     const wishes = await this.wishRepository.find({
       where: { owner: { username: username } },
+      relations: { owner: true, offers: true },
     });
     if (!wishes) {
       throw new NotFoundException('Желаемые подарки не найдены');
     }
     return wishes;
   }
+
+  async copyWish(id: number, userId: number) {
+    const wish = await this.findOne(id);
+    if (!wish) {
+      throw new NotFoundException('Желаемый подарок не найден');
+    } else if (wish.owner.id === userId) {
+      throw new ConflictException('У вас уже есть это желание');
+    }
+    const copyWishDto = {
+      ...wish,
+      copied: wish.copied + 1,
+    };
+    const copyWish = await this.create(userId, copyWishDto);
+    return this.wishRepository.save(copyWish);
+  }
+
+  async getLast(): Promise<Wish[]> {
+    return await this.wishRepository.find({
+      take: 40,
+      order: { createdAt: 'desc' },
+      relations: { owner: true, offers: true },
+    });
+  }
+
+  async getTopCopied(): Promise<Wish[]> {
+    return await this.wishRepository.find({
+      take: 20,
+      order: { copied: 'desc' },
+      relations: { owner: true, offers: true },
+    });
+  }
+  // findAll() {
+  //   return this.wishRepository.find();
+  // }
 }
