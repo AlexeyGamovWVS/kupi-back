@@ -30,7 +30,7 @@ export class Wishlist {
   name: string;
 
   // wishlist caption
-  @Column()
+  @Column({ default: '' })
   @Length(0, 1500)
   @IsString()
   description: string;
