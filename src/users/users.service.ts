@@ -20,11 +20,16 @@ export class UsersService {
   ) {}
 
   async singup(createUserDto: CreateUserDto): Promise<User> {
-    const existingUser = await this.userRepository.findOneBy({
-      email: createUserDto.email,
+    const existingUser = await this.userRepository.findOne({
+      where: [
+        { email: createUserDto.email },
+        { username: createUserDto.username },
+      ],
     });
     if (existingUser) {
-      throw new ConflictException('Email уже используются');
+      throw new ConflictException(
+        'Email или имя пользователя уже используются',
+      );
     }
 
     const { password } = createUserDto;
