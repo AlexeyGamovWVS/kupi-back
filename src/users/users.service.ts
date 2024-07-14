@@ -19,19 +19,30 @@ export class UsersService {
     private userRepository: Repository<User>,
   ) {}
 
-  async singup(createUserDto: CreateUserDto): Promise<User> {
-    const existingUser = await this.userRepository.findOne({
-      where: [
-        { email: createUserDto.email },
-        { username: createUserDto.username },
-      ],
-    });
-    if (existingUser) {
+  private async checkUserExist(
+    email: string,
+    username: string,
+    userId?: number,
+  ) {
+    let existingUser: User = undefined;
+
+    if (email) {
+      existingUser = await this.findOneByEmail(email);
+    }
+
+    if (username && !existingUser) {
+      existingUser = await this.findOneByUsername(username);
+    }
+
+    if (existingUser && existingUser.id !== userId) {
       throw new ConflictException(
         'Email или имя пользователя уже используются',
       );
     }
+  }
 
+  async singup(createUserDto: CreateUserDto): Promise<User> {
+    await this.checkUserExist(createUserDto.email, createUserDto.username);
     const { password } = createUserDto;
     const user = this.userRepository.create({
       ...createUserDto,
@@ -49,9 +60,14 @@ export class UsersService {
     return this.userRepository.findOneOrFail(query);
   }
 
-  async update(id: number, updateUserDto: UpdateUserDto) {
+  async update(userId: number, updateUserDto: UpdateUserDto) {
+    await this.checkUserExist(
+      updateUserDto.email,
+      updateUserDto.username,
+      userId,
+    );
     const { password } = updateUserDto;
-    const user = await this.findById(id);
+    const user = await this.findById(userId);
     if (password) {
       updateUserDto.password = await hashValue(password);
     }
@@ -60,6 +76,10 @@ export class UsersService {
 
   findOneByUsername(username: string) {
     return this.userRepository.findOneBy({ username });
+  }
+
+  findOneByEmail(email: string) {
+    return this.userRepository.findOneBy({ email });
   }
 
   async findMany(findUserDto: FindUserDto) {
